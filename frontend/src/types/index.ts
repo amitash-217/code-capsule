@@ -8,13 +8,12 @@ export interface LanguageOption {
 }
 
 export interface Snippet {
-  id: string;
-  title: string;
+  _id: string;
   code: string;
   description: string;
   language: string;
   tags: string[];
-  createdAt: string; 
+  modified_at: string; 
 }
 
 export type SnippetFormData = Omit<Snippet, 'id' | 'createdAt'>;

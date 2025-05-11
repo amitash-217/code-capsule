@@ -31,11 +31,11 @@ export function SnippetCard({ snippet, onEdit, onDelete }: SnippetCardProps) {
 
   const formattedDate = React.useMemo(() => {
     try {
-      return formatDistanceToNow(new Date(snippet.createdAt), { addSuffix: true });
+      return formatDistanceToNow(new Date(snippet.modified_at), { addSuffix: true });
     } catch (error) {
       return "Invalid date";
     }
-  }, [snippet.createdAt]);
+  }, [snippet.modified_at]);
 
   const highlighterLanguage = mapLanguageForSyntaxHighlighter(snippet.language);
 
@@ -128,7 +128,7 @@ export function SnippetCard({ snippet, onEdit, onDelete }: SnippetCardProps) {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="destructive" size="icon" onClick={() => onDelete(snippet.id)} aria-label="Delete snippet">
+                <Button variant="destructive" size="icon" onClick={() => onDelete(snippet._id)} aria-label="Delete snippet">
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>

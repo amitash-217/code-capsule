@@ -2,10 +2,15 @@ require("dotenv").config()
 const express = require("express")
 const http = require("http")
 const mongoose = require("mongoose")
+const cors = require('cors');
 const { Code } = require("./models/Code")
 
 const app = express()
 app.use(express.json())
+
+app.use(cors({
+    // origin: 'http://localhost:3000' // Your React app's address
+}));
 
 function mustHaveProperties(properties, obj) {
     return properties.every(prop => prop in obj && obj[prop] != "")
@@ -14,6 +19,7 @@ function mustHaveProperties(properties, obj) {
 app.post('/code', async (req, res) => {
     try {
         let snippet = req.body
+        console.log(snippet)
         if (mustHaveProperties(["code", "description", "language"], snippet)) {
             snippet.created_at = new Date()
             snippet.modified_at = new Date()
@@ -31,8 +37,9 @@ app.post('/code', async (req, res) => {
 app.patch('/code', async (req, res) => {
     try {
         const snippet = req.body
-        if (mustHaveProperties(["id"], snippet)) {
-            const document = await Code.findOne({ _id: snippet.id })
+        console.log(snippet)
+        if (mustHaveProperties(["_id"], snippet)) {
+            const document = await Code.findOne({ _id: snippet._id })
             if (document == undefined) {
                 res.status(404).json({ "error": "Document does not exist" })
                 return
@@ -65,7 +72,7 @@ app.get('/code', async (req, res) => {
             query = { tags: { $in: tags } }
         }
         const documents = await Code.find(query).exec()
-        res.json({ "codes": documents })
+        res.json({ "snippets": documents })
     } catch (e) {
         console.log(`Exception, ${e} occurred when fetching code snippets`)
         res.status(500).json({ "error": "Error occurred when fetching snippet" })

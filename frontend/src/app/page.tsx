@@ -20,31 +20,32 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from '@/components/ui/input';
+import { decodeBase64Unicode, encodeBase64Unicode } from '@/lib/utils';
 
 const initialSnippets: Snippet[] = [
   {
-    id: '1',
+    _id: '1',
     code: "import { useState } from 'react';\n\nfunction Counter() {\n  const [count, setCount] = useState(0);\n  return <button onClick={() => setCount(count + 1)}>{count}</button>;\n}",
     description: "Basic example of using the useState hook in React for a simple counter.",
     language: "javascript",
     tags: ["react", "hooks", "javascript", "frontend"],
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(), // 2 days ago
+    modified_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(), // 2 days ago
   },
   {
-    id: '2',
+    _id: '2',
     code: "squares = [x**2 for x in range(10)]\nprint(squares)",
     description: "A concise way to create lists in Python using list comprehension.",
     language: "python",
     tags: ["python", "list comprehension", "data structures"],
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(), // 5 days ago
+    modified_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(), // 5 days ago
   },
   {
-    id: '3',
+    _id: '3',
     code: ".container {\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  height: 100vh;\n}",
     description: "Common CSS pattern to center an element within its parent using Flexbox.",
     language: "css",
     tags: ["css", "flexbox", "layout", "frontend"],
-    createdAt: new Date().toISOString(),
+    modified_at: new Date().toISOString(),
   },
 ];
 
@@ -58,32 +59,51 @@ export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const { toast } = useToast();
 
+  function fetchSnippets() {
+    fetch('http://localhost:4000/code').then(
+      (response) => {
+        return response.json()
+      }
+    ).then((data) => {
+      const decodedSnippets = data.snippets.map((snippet: Snippet) => ({
+        ...snippet,
+        code: decodeBase64Unicode(snippet.code),
+      }));
+      setSnippets(decodedSnippets)
+    }).catch(error => console.error('Error fetching data:', error))
+  }
+
   useEffect(() => {
-    const storedSnippets = localStorage.getItem('codeCapsuleSnippets');
-    if (storedSnippets) {
-      setSnippets(JSON.parse(storedSnippets));
-    } else {
-      setSnippets(initialSnippets);
-      localStorage.setItem('codeCapsuleSnippets', JSON.stringify(initialSnippets));
-    }
+    fetchSnippets()
   }, []);
 
   useEffect(() => {
     if (snippets.length > 0 || localStorage.getItem('codeCapsuleSnippets')) {
-        localStorage.setItem('codeCapsuleSnippets', JSON.stringify(snippets));
+      // localStorage.setItem('codeCapsuleSnippets', JSON.stringify(snippets));
     }
   }, [snippets]);
 
   const handleAddSnippet = (data: SnippetFormData) => {
     const newSnippet: Snippet = {
       ...data,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
+      code: encodeBase64Unicode(data.code)
     };
-    setSnippets(prev => [newSnippet, ...prev]);
     setIsFormOpen(false);
     setEditingSnippet(null);
-    toast({ title: "Snippet Created", description: `Snippet "${data.description.substring(0,20)}..." has been added.` });
+    fetch('http://localhost:4000/code', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(newSnippet),
+    }).then((response) => {
+      if (response.status == 200) {
+        fetchSnippets()
+        toast({ title: "Snippet Created", description: `Snippet "${data.description.substring(0, 20)}..." has been added.` });
+      } else {
+        toast({ title: "Snippet creation Failed!", description: `Snippet "${data.description.substring(0, 20)}..." could not be created.`, variant: "destructive", });
+      }
+    });
   };
 
   const handleUpdateSnippet = (data: SnippetFormData) => {
@@ -92,21 +112,40 @@ export default function HomePage() {
       ...editingSnippet,
       ...data,
     };
-    setSnippets(prev =>
-      prev.map(s => (s.id === editingSnippet.id ? updatedSnippetData : s))
-    );
     setIsFormOpen(false);
     setEditingSnippet(null);
-    toast({ title: "Snippet Updated", description: `Snippet "${updatedSnippetData.description.substring(0,20)}..." has been updated.` });
+    updatedSnippetData.code = encodeBase64Unicode(updatedSnippetData.code)
+    fetch('http://localhost:4000/code', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updatedSnippetData),
+    }).then((response) => {
+      if (response.status == 201) {
+        fetchSnippets()
+        toast({ title: "Snippet Updated", description: `Snippet "${updatedSnippetData.description.substring(0, 20)}..." has been updated.` });
+      } else {
+        toast({ title: "Failed to update snippet!", description: `Snippet "${updatedSnippetData.description.substring(0, 20)}..." could not be updated.`, variant: "destructive", });
+      }
+    });
   };
 
   const handleDeleteSnippet = () => {
     if (!snippetToDeleteId) return;
-    const snippet = snippets.find(s => s.id === snippetToDeleteId);
-    setSnippets(prev => prev.filter(s => s.id !== snippetToDeleteId));
-    setSnippetToDeleteId(null);
+    const snippet = snippets.find(s => s._id === snippetToDeleteId);
     if (snippet) {
-     toast({ title: "Snippet Deleted", description: `Snippet "${snippet.description.substring(0,20)}..." has been deleted.`, variant: "destructive" });
+      fetch(`http://localhost:4000/code?id=${snippet._id}`, {
+        method: 'DELETE',
+      }).then((response) => {
+        if (response.status == 204) {
+          fetchSnippets()
+          setSnippetToDeleteId(null);
+          toast({ title: "Snippet Deleted", description: `Snippet "${snippet.description.substring(0, 20)}..." has been deleted.`, variant: "destructive" });
+        } else {
+          toast({ title: "Failed to delete snippet!", description: `Snippet "${snippet.description.substring(0, 20)}..." could not be updated.`, variant: "destructive", });
+        }
+      });
     }
   };
 
@@ -137,13 +176,13 @@ export default function HomePage() {
         const matchesSearchTerm =
           snippet.description.toLowerCase().includes(searchTermLower) ||
           snippet.code.toLowerCase().includes(searchTermLower);
-        
-        const matchesTags = filterTags.length === 0 || 
+
+        const matchesTags = filterTags.length === 0 ||
           filterTags.every(tag => snippet.tags?.includes(tag));
-          
+
         return matchesSearchTerm && matchesTags;
       })
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      .sort((a, b) => new Date(b.modified_at).getTime() - new Date(a.modified_at).getTime());
   }, [snippets, filterTags, searchTerm]);
 
   if (isFormOpen) {
@@ -173,8 +212,8 @@ export default function HomePage() {
       <main className="flex-1 container mx-auto p-4 md:p-6 lg:p-8 space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2 text-3xl font-bold text-foreground">
-             <Code2 className="h-8 w-8 text-accent" />
-             <span className="sr-only">Code Capsule</span>
+            <Code2 className="h-8 w-8 text-accent" />
+            <span className="sr-only">Code Capsule</span>
           </div>
           <div className="relative w-full sm:max-w-xs">
             <Input
@@ -208,9 +247,9 @@ export default function HomePage() {
       <AlertDialog open={!!snippetToDeleteId} onOpenChange={() => setSnippetToDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the snippet "{snippets.find(s => s.id === snippetToDeleteId)?.description.substring(0,50)}...".
+              This action cannot be undone. This will permanently delete the snippet "{snippets.find(s => s._id === snippetToDeleteId)?.description.substring(0, 50)}...".
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
