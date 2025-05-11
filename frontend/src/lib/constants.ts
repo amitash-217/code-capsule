@@ -15,5 +15,3 @@ export const LANGUAGE_OPTIONS: LanguageOption[] = [
   { value: 'text', label: 'Plain Text', icon: Pilcrow },
   { value: 'other', label: 'Other', icon: Code },
 ];
-
-export const serverHostname = process.env.NEXT_PUBLIC_SERVER_HOSTNAME
