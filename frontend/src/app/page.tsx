@@ -21,6 +21,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Input } from '@/components/ui/input';
 import { decodeBase64Unicode, encodeBase64Unicode } from '@/lib/utils';
+import { serverHostname } from '@/lib/constants';
 
 const initialSnippets: Snippet[] = [
   {
@@ -60,7 +61,7 @@ export default function HomePage() {
   const { toast } = useToast();
 
   function fetchSnippets() {
-    fetch('http://localhost:4000/code').then(
+    fetch(`http://${serverHostname}:4001/code`).then(
       (response) => {
         return response.json()
       }
@@ -90,7 +91,7 @@ export default function HomePage() {
     };
     setIsFormOpen(false);
     setEditingSnippet(null);
-    fetch('http://localhost:4000/code', {
+    fetch(`http://${serverHostname}:4001/code`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -115,7 +116,7 @@ export default function HomePage() {
     setIsFormOpen(false);
     setEditingSnippet(null);
     updatedSnippetData.code = encodeBase64Unicode(updatedSnippetData.code)
-    fetch('http://localhost:4000/code', {
+    fetch(`http://${serverHostname}:4001/code`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -135,7 +136,7 @@ export default function HomePage() {
     if (!snippetToDeleteId) return;
     const snippet = snippets.find(s => s._id === snippetToDeleteId);
     if (snippet) {
-      fetch(`http://localhost:4000/code?id=${snippet._id}`, {
+      fetch(`http://${serverHostname}:4001/code?id=${snippet._id}`, {
         method: 'DELETE',
       }).then((response) => {
         if (response.status == 204) {

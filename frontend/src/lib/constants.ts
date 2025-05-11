@@ -1,4 +1,3 @@
-
 import type { LanguageOption } from '@/types';
 import { FileJson, Braces, FileCode2, Database, Terminal, FileText, Code, Pilcrow } from 'lucide-react';
 
@@ -17,3 +16,4 @@ export const LANGUAGE_OPTIONS: LanguageOption[] = [
   { value: 'other', label: 'Other', icon: Code },
 ];
 
+export const serverHostname = process.env.NEXT_PUBLIC_SERVER_HOSTNAME

@@ -45,14 +45,14 @@ app.patch('/code', async (req, res) => {
                 return
             }
             document.modified_at = new Date()
-            if (mustHaveProperties(["code"], snippet))
-                document.code = snippet.code
+            // if (mustHaveProperties(["code"], snippet))
+            document.code = snippet.code
 
-            if (mustHaveProperties(["description"], snippet))
-                document.description = snippet.description
+            // if (mustHaveProperties(["description"], snippet))
+            document.description = snippet.description
 
-            if (mustHaveProperties(["tags"], snippet))
-                document.tags = snippet.tags
+            // if (mustHaveProperties(["tags"], snippet))
+            document.tags = snippet.tags
             await document.save()
             res.sendStatus(201)
         } else {
@@ -130,8 +130,8 @@ app.delete('/code', async (req, res) => {
 
 const server = http.createServer(app)
 
-server.listen(4000, "0.0.0.0", async () => {
-    console.log("Server is listening on port 4000")
+server.listen(4001, "0.0.0.0", async () => {
+    console.log("Server is listening on port 4001")
     await mongoose.connect(process.env.MONGO_URI)
     console.log("Connected to mongo db")
 })
